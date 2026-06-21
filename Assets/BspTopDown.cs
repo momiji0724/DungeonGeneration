@@ -13,6 +13,8 @@ public class BspTopDown : MonoBehaviour
     public TileBase floorTile;
     public TileBase wallTile;
 
+    public GameObject playerPrefab;
+
     private int mapSize = 60;
     private int[,] mapGrid;
 
@@ -272,6 +274,8 @@ public class BspTopDown : MonoBehaviour
     {
         int mapSize = 60;
 
+        mapGrid = new int[mapSize, mapSize];
+
         int leftBottomX = -mapSize / 2;
         int leftBottomY = -mapSize / 2;
 
@@ -287,8 +291,34 @@ public class BspTopDown : MonoBehaviour
         DrawTiles();
 
 
-        Debug.Log("全てのダンジョン構造を生成しました");
+        Debug.Log("ダンジョン生成完了");
 
+        if(playerPrefab != null) 
+        {
+            for (int x = mapSize / 2; x < mapSize; x++) 
+            {
+                for (int y = mapSize / 2; y < mapSize; y++)
+                {
+                    if (mapGrid[x,y] == 1) 
+                    {
+                        GameObject playerObj = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
+                        PlayerControlller playerController = playerObj.GetComponent<PlayerControlller>();
+
+                        if(playerController != null) 
+                        {
+                            playerController.SetupPlayer(this, new Vector2Int(x, y));
+                        }
+                        return;
+                    }
+                }
+            }
+        }
+
+    }
+
+    public int[,] GetMapGrid() 
+    {
+        return mapGrid;
     }
 
     // Update is called once per frame
