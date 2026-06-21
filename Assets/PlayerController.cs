@@ -1,9 +1,12 @@
+using System;
 using UnityEngine;
 
-public class PlayerControlller : MonoBehaviour
+public class PlayerController : MonoBehaviour
 {
     private BspTopDown mapGenerator;
     private Vector2Int gridPosition;
+
+    public event Action OnTurnConsumed;
 
     public void SetupPlayer(BspTopDown generator,Vector2Int startGridPos) 
     {
@@ -21,12 +24,19 @@ public class PlayerControlller : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (mapGenerator == null) return;
         Vector2Int movement = Vector2Int.zero;
 
         if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W)) movement.y = 1;
         if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S)) movement.y = -1;
         if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A)) movement.x = -1;
         if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D)) movement.x = 1;
+
+        if (Input.GetKeyDown(KeyCode.Space)) 
+        {
+            OnTurnConsumed?.Invoke();
+        }
+
 
         if (movement != Vector2Int.zero) 
         {
@@ -38,28 +48,28 @@ public class PlayerControlller : MonoBehaviour
 
     void TryMove(Vector2Int direction) 
     {
-        Vector2Int targetGridPos = gridPosition + direction ;
-        int[,] grid = mapGenerator.GetMapGrid();
+        if (mapGenerator == null) return;
 
-        if(targetGridPos.x >= 0 && targetGridPos.x < grid.GetLength(0) 
-           && targetGridPos.y >= 0 && targetGridPos.y < grid.GetLength(1)) 
+        Vector2Int targetGridPos = gridPosition + direction;
+
+        if (mapGenerator.IsWalkable(targetGridPos))
         {
-            if (grid[targetGridPos.x,targetGridPos.y] == 1) 
-            {
-                gridPosition = targetGridPos;
-                UpdateWorldPosition();
-            }
+            gridPosition = targetGridPos;
+            UpdateWorldPosition();
+
+            OnTurnConsumed?.Invoke();
         }
     }
+    
 
     void UpdateWorldPosition() 
     {
-        int[,]grid = mapGenerator.GetMapGrid();
-        int size = grid.GetLength(0);
+        if (mapGenerator == null) return;
 
-        float worldX = gridPosition.x - size / 2;
-        float worldY = gridPosition.y - size / 2;
-
-        transform.position = new Vector3(worldX + 0.5f, worldY + 0.5f,0);
+        transform.position = new Vector3(gridPosition.x + 0.5f, gridPosition.y + 0.5f,0);
+    }
+    public Vector2Int GetGridPosition() 
+    {
+        return gridPosition;
     }
 }

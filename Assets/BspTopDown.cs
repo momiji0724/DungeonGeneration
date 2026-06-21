@@ -1,23 +1,34 @@
-using Unity.VisualScripting;
+ï»¿using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.U2D;
 using UnityEngine.Tilemaps;
+using System.Collections.Generic;
+using UnityEngine.U2D;
+using static BspTopDown;
 
 public class BspTopDown : MonoBehaviour
 {
+    [Header("Playerã®è¨­å®š")]
+    public GameObject playerPrefab;
+
+    [Header("Enemyã®è¨­å®š")]
+    public GameObject enemyPrefab;
+
+    private System.Collections.Generic.List<EnemyController> spawnedEnemies = new System.Collections.Generic.List<EnemyController>();
+    public System.Collections.Generic.List<EnemyController> GetEnemies() => spawnedEnemies;
+
+
     public int minRegionSize = 10;
     public int maxDepth = 4;
 
-    [Header("ƒ^ƒCƒ‹ƒ}ƒbƒv‚Ìİ’è")]
+    [Header("ã‚¿ã‚¤ãƒ«ãƒãƒƒãƒ—ã®è¨­å®š")]
     public Tilemap tilemap;
     public TileBase floorTile;
     public TileBase wallTile;
 
-    public GameObject playerPrefab;
-
     private int mapSize = 60;
     private int[,] mapGrid;
 
+    private List<RectInt> allRooms = new List<RectInt>(); 
     public class Region
     {
         public int x, y, width, height;
@@ -62,7 +73,7 @@ public class BspTopDown : MonoBehaviour
             currentRegion.rightChild = new Region(currentRegion.x, currentRegion.y + splitPoint, currentRegion.width, currentRegion.height -splitPoint);
             Vector3 lineStart = new Vector3(currentRegion.x, currentRegion.y + splitPoint, 0);
             Vector3 lineEnd = new Vector3(currentRegion.x + currentRegion.width, currentRegion.y + splitPoint, 0);
-            Debug.DrawLine(lineStart, lineEnd, Color.red, 100f); // 100•bŠÔ•\¦
+            Debug.DrawLine(lineStart, lineEnd, Color.red, 100f); // 100ç§’é–“è¡¨ç¤º
         }
         else
         {
@@ -72,7 +83,7 @@ public class BspTopDown : MonoBehaviour
             currentRegion.rightChild = new Region(currentRegion.x + splitPoint, currentRegion.y, currentRegion.width - splitPoint, currentRegion.height);
 
 
-            // cŠ„‚è‚Ìü‚ğSceneƒrƒ…[‚Éˆø‚­i—ÎF‚Å•\¦j
+            // ç¸¦å‰²ã‚Šã®ç·šã‚’Sceneãƒ“ãƒ¥ãƒ¼ã«å¼•ãï¼ˆç·‘è‰²ã§è¡¨ç¤ºï¼‰
             Vector3 lineStart = new Vector3(currentRegion.x + splitPoint, currentRegion.y, 0);
             Vector3 lineEnd = new Vector3(currentRegion.x + splitPoint, currentRegion.y + currentRegion.height, 0);
             Debug.DrawLine(lineStart, lineEnd, Color.green, 100f);
@@ -97,6 +108,8 @@ public class BspTopDown : MonoBehaviour
 
             region.room = new RectInt(roomX, roomY, roomWidth, roomHeight);
 
+            allRooms.Add(region.room);
+
             for (int x = roomX; x < roomX + roomWidth; x++) 
             {
                 for(int y = roomY; y < roomY + roomHeight; y++) 
@@ -104,6 +117,8 @@ public class BspTopDown : MonoBehaviour
                     SetGridValue(x, y, 1);
                 }
             }
+
+
 
             Vector3 bottomLeft = new Vector3(roomX, roomY, 0);
             Vector3 topLeft = new Vector3(roomX, roomY + roomHeight, 0);
@@ -244,7 +259,7 @@ public class BspTopDown : MonoBehaviour
     {
         if(tilemap == null || floorTile == null || wallTile == null) 
         {
-            Debug.Log("ƒ^ƒCƒ‹‚ªƒZƒbƒg‚³‚ê‚Ä‚¢‚Ü‚¹‚ñ");
+            Debug.Log("ã‚¿ã‚¤ãƒ«ãŒã‚»ãƒƒãƒˆã•ã‚Œã¦ã„ã¾ã›ã‚“");
             return;
         }
 
@@ -272,8 +287,7 @@ public class BspTopDown : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        int mapSize = 60;
-
+        mapSize = 60;
         mapGrid = new int[mapSize, mapSize];
 
         int leftBottomX = -mapSize / 2;
@@ -291,29 +305,76 @@ public class BspTopDown : MonoBehaviour
         DrawTiles();
 
 
-        Debug.Log("ƒ_ƒ“ƒWƒ‡ƒ“¶¬Š®—¹");
+        Debug.Log("ãƒ€ãƒ³ã‚¸ãƒ§ãƒ³ç”Ÿæˆå®Œäº†");
 
-        if(playerPrefab != null) 
+        if (allRooms.Count < 2)
         {
-            for (int x = mapSize / 2; x < mapSize; x++) 
-            {
-                for (int y = mapSize / 2; y < mapSize; y++)
-                {
-                    if (mapGrid[x,y] == 1) 
-                    {
-                        GameObject playerObj = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
-                        PlayerControlller playerController = playerObj.GetComponent<PlayerControlller>();
+            Debug.LogError("éƒ¨å±‹ã®æ•°ãŒè¶³ã‚Šã¾ã›ã‚“");
+            return;
+        }
 
-                        if(playerController != null) 
-                        {
-                            playerController.SetupPlayer(this, new Vector2Int(x, y));
-                        }
-                        return;
-                    }
-                }
+        List<RectInt> shuffledRooms = new List<RectInt>(allRooms);
+
+        for (int i = 0; i < shuffledRooms.Count; i++)
+        {
+            int temp = Random.Range(i, shuffledRooms.Count);
+            RectInt value = shuffledRooms[temp];
+            shuffledRooms[temp] = shuffledRooms[i];
+            shuffledRooms[i] = value;
+        }
+
+        RectInt playerRoom = shuffledRooms[0];
+        RectInt enemyRoom = shuffledRooms[1];
+
+        Vector2Int playerGridPos = new Vector2Int((int)playerRoom.center.x, (int)playerRoom.center.y);
+        bool playerSpawned = false;
+
+        if (playerPrefab != null) 
+        {
+            GameObject playerObj = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
+            playerObj.tag = "Player";
+            PlayerController playerController = playerObj.GetComponent<PlayerController>();
+            if (playerController != null)
+            {
+                playerController.SetupPlayer(this, playerGridPos);
             }
         }
 
+        if (enemyPrefab != null)
+        {
+            spawnedEnemies.Clear();
+
+            int maxEnemiesToSpawn = 5;
+            int spawnedCount = 0;
+            for(int i =1; i < shuffledRooms.Count; i++) 
+            {
+            
+            }
+            Vector2Int enemyGridPos = new Vector2Int((int)enemyRoom.center.x, (int)enemyRoom.center.y);
+
+            GameObject enemyObj = Instantiate(enemyPrefab, Vector3.zero, Quaternion.identity);
+            enemyObj.tag = "Enemy";
+            EnemyController enemyController = enemyObj.GetComponent<EnemyController>();
+
+            if (enemyController != null)
+            {
+                enemyController.SetupEnemy(this, enemyGridPos, enemyRoom, true);
+                spawnedEnemies.Add(enemyController);
+            }
+        }
+
+    }
+
+    public bool IsWalkable(Vector2Int gridPos)
+    {
+        int ix = gridPos.x + mapSize / 2;
+        int iy = gridPos.y + mapSize / 2;
+
+        if (ix >= 0 && ix < mapSize && iy >= 0 && iy < mapSize)
+        {
+            return mapGrid[ix, iy] == 1;
+        }
+        return false;
     }
 
     public int[,] GetMapGrid() 
