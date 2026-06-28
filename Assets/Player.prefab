@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 791019735306186532}
   - component: {fileID: 6660312456965433031}
   - component: {fileID: -7991601116560610338}
+  - component: {fileID: 4624879495394256970}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -104,3 +105,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2b5d2e8d5938d0e449e84c54ca85a277, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerControlller
+  moveInterval: 0.15
+  status: {fileID: 0}
+--- !u!114 &4624879495394256970
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8702989630505393117}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 53a7e56211398ea4f9f63b1aea7d9e59, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterStatus
+  maxHp: 20
+  currentHp: 0
+  maxMp: 10
+  currentMp: 0
+  attackPower: 1
+  isPlayer: 0

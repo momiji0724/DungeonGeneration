@@ -1,6 +1,8 @@
 using Unity.VisualScripting;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.TextCore.Text;
 
 public class EnemyController : MonoBehaviour
 {
@@ -8,6 +10,29 @@ public class EnemyController : MonoBehaviour
     private Vector2Int gridPosition;
     private RectInt currentRoom;
     private bool hasRoom = false;
+    private bool isShaking = false;
+
+    public CharacterStatus Status { get; private set;}
+
+    private void Awake()
+    {
+        Status = GetComponent<CharacterStatus>();
+
+        if(Status != null) 
+        {
+            Status.maxHp = 10;
+            Status.currentHp = 10;
+            Status.attackPower = 1;
+        }
+    }
+
+    public void AttackPlayer(CharacterStatus playerStatus) 
+    {
+        if (Status == null || playerStatus == null) return;
+
+        Debug.Log("EnemyÇ™PlayerÇ…îΩåÇ");
+        playerStatus.TakeDamage(Status.attackPower);
+    }
 
     public void SetupEnemy(BspTopDown generator, Vector2Int startGridPos,RectInt room,bool isInRoom)
     {
@@ -22,7 +47,7 @@ public class EnemyController : MonoBehaviour
 
     public void TakeTurn(Vector2Int playerGridPos) 
     {
-        if (mapGenerator == null) return;
+        if (mapGenerator == null || isShaking) return;
 
         if (hasRoom && IsPlayerInSameRoom(playerGridPos))
         {
@@ -64,18 +89,65 @@ public class EnemyController : MonoBehaviour
     {
         
     }
+    public Vector2Int GetGridPosition() 
+    {
+        return gridPosition;
+    }
     void TryMove(Vector2Int direction)
     {
         if (mapGenerator == null) return;
 
         Vector2Int targetGridPos = gridPosition + direction;
 
-        if (mapGenerator.IsWalkable(targetGridPos)) 
+        if (!mapGenerator.IsWalkable(targetGridPos)) 
         {
-            gridPosition = targetGridPos;
-            UpdateWorldPosition();
+            StartCoroutine(ShakeRoutine(direction));
+            return; 
         }
 
+        if (mapGenerator.IsPlayerAtPosition(targetGridPos)) 
+        {
+            Debug.Log("EnemyÇ™PlayerÇ…è’ìÀ");
+            StartCoroutine(ShakeRoutine(direction));
+            return;
+        }
+        if(mapGenerator.GetEnemyAtPosition(targetGridPos) != null) 
+        {
+            StartCoroutine(ShakeRoutine(direction));
+            return;
+        }
+        
+        gridPosition = targetGridPos;
+        UpdateWorldPosition();
+
+    }
+
+    private IEnumerator ShakeRoutine(Vector2Int direction)
+    {
+        isShaking = true;
+
+        Vector3 basePosition = new Vector3(gridPosition.x + 0.5f, gridPosition.y + 0.5f, 0);
+        Vector3 shakeOffset = -new Vector3(direction.x, direction.y, 0) * 0.15f;
+
+        float elapsed = 0f;
+        float duration = 0.03f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            transform.position = Vector3.Lerp(basePosition, basePosition + shakeOffset, elapsed / duration);
+            yield return null;
+        }
+        elapsed = 0f;
+        duration = 0.05f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            transform.position = Vector3.Lerp(basePosition, basePosition + shakeOffset, elapsed / duration);
+            yield return null;
+
+        }
+        transform.position = basePosition;
+        isShaking = false;
     }
 
     void UpdateWorldPosition()

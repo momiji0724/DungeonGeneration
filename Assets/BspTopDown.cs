@@ -28,7 +28,8 @@ public class BspTopDown : MonoBehaviour
     private int mapSize = 60;
     private int[,] mapGrid;
 
-    private List<RectInt> allRooms = new List<RectInt>(); 
+    private List<RectInt> allRooms = new List<RectInt>();
+    private PlayerController spawnedPlayer;
     public class Region
     {
         public int x, y, width, height;
@@ -324,7 +325,6 @@ public class BspTopDown : MonoBehaviour
         }
 
         RectInt playerRoom = shuffledRooms[0];
-        RectInt enemyRoom = shuffledRooms[1];
 
         Vector2Int playerGridPos = new Vector2Int((int)playerRoom.center.x, (int)playerRoom.center.y);
         bool playerSpawned = false;
@@ -337,6 +337,7 @@ public class BspTopDown : MonoBehaviour
             if (playerController != null)
             {
                 playerController.SetupPlayer(this, playerGridPos);
+                spawnedPlayer = playerController;
             }
         }
 
@@ -346,21 +347,26 @@ public class BspTopDown : MonoBehaviour
 
             int maxEnemiesToSpawn = 5;
             int spawnedCount = 0;
+
             for(int i =1; i < shuffledRooms.Count; i++) 
             {
-            
-            }
-            Vector2Int enemyGridPos = new Vector2Int((int)enemyRoom.center.x, (int)enemyRoom.center.y);
+                if (spawnedCount >= maxEnemiesToSpawn) break;
 
-            GameObject enemyObj = Instantiate(enemyPrefab, Vector3.zero, Quaternion.identity);
-            enemyObj.tag = "Enemy";
-            EnemyController enemyController = enemyObj.GetComponent<EnemyController>();
+                RectInt enemyRoom = shuffledRooms[i];
+                Vector2Int enemyGridPos = new Vector2Int((int)enemyRoom.center.x, (int)enemyRoom.center.y);
+                GameObject enemyObj = Instantiate(enemyPrefab, Vector3.zero, Quaternion.identity);
+                enemyObj.tag = "Enemy";
+                EnemyController enemyController = enemyObj.GetComponent<EnemyController>();
+                if (enemyController != null)
+                {
+                    enemyController.SetupEnemy(this, enemyGridPos, enemyRoom, true);
+                    spawnedEnemies.Add(enemyController);
+                    spawnedCount++;
+                }
 
-            if (enemyController != null)
-            {
-                enemyController.SetupEnemy(this, enemyGridPos, enemyRoom, true);
-                spawnedEnemies.Add(enemyController);
             }
+
+
         }
 
     }
@@ -380,6 +386,24 @@ public class BspTopDown : MonoBehaviour
     public int[,] GetMapGrid() 
     {
         return mapGrid;
+    }
+
+    public EnemyController GetEnemyAtPosition(Vector2Int gridPos) 
+    {
+        foreach(var enemy in spawnedEnemies) 
+        {
+            if(enemy != null && enemy.GetGridPosition() == gridPos) 
+            {
+                return enemy;
+            }
+        }
+        return null;
+    }
+
+    public bool IsPlayerAtPosition(Vector2Int gridPos) 
+    {
+        if(spawnedPlayer == null)return false;
+        return spawnedPlayer.GetGridPosition() == gridPos;
     }
 
     // Update is called once per frame
